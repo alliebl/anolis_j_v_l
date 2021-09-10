@@ -1,0 +1,93 @@
+---
+title: "Final Species Comparison"
+output: html_notebook
+---
+
+```{r}
+library(edgeR)
+```
+
+```{r}
+library("RColorBrewer")
+library("gplots")
+```
+
+```{r}
+counts <- read.delim("anoles_counts.txt",row.names= 1, header=T)
+dim(counts)
+head(counts)
+d0 <- DGEList(counts)
+```
+
+```{r}
+anno <- read.delim("Anole Annotation.gz",as.is=T)
+dim(anno)
+```
+
+
+```{r}
+head(anno)
+tail(anno)
+any(duplicated(anno$Gene.stable.ID))
+snames <- colnames(counts)
+snames
+```
+
+```{r}
+factor1 <- substr(snames, 3, 3)
+factor1
+```
+
+
+```{r}
+group <- factor1
+group
+```
+
+```{r}
+d0 <- calcNormFactors(d0)
+d0$samples
+```
+
+```{r}
+cutoff <- 5
+drop <- which(apply(cpm(d0), 1, max) < cutoff)
+d <- d0[-drop,]
+dim(d)
+```
+
+```{r}
+plotMDS(d, col = as.numeric(group))
+
+```
+
+```{r}
+logcpm <- cpm(d, prior.count=2, log=TRUE)
+write.table(logcpm, "anoles_normalized_counts.txt", sep="\t",quote=F)
+```
+
+
+```{r}
+mm <- model.matrix(~factor1)
+head(mm)
+```
+
+```{r}
+y <- voom(d, mm, plot = F)
+fit <- lmFit(y, mm)
+tmp <- contrasts.fit(fit, coef = 2)
+tmp <- eBayes(tmp)
+top.table <- topTable(tmp, sort.by = "P", n = Inf)
+head(top.table, 20)
+length(which(top.table$adj.P.Val < 0.05))
+
+```
+
+```{r}
+top.table$Gene <- rownames(top.table)
+top.table <- top.table[,c("Gene", names(top.table)[1:6])]
+top.table <- data.frame(top.table,anno[match(top.table$Gene,anno$Gene.stable.ID.version),],logcpm[match(top.table$Gene,rownames(logcpm)),])
+
+write.table(top.table, file = "Final species DE comparison.txt", row.names = F, sep = "\t", quote = F)
+```
+

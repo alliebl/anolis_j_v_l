@@ -1,0 +1,104 @@
+---
+title: "Final Muscle Physiology"
+output: html_notebook
+---
+
+```{r}
+library(nlme)
+#install.packages("dplyr")
+D<-OtherMetrics.Muscle.Data
+F<-TwitchTime.Anole.Muscle.Data
+
+mmodtt<-lme(twitch.time~muscle, random=~1|species/individual, data=F, na.action=na.omit)
+
+anova(mmodtt)
+
+mmodpr<-lme(power.ratio~muscle, random=~1|species/individual, data=D, na.action=na.omit)
+
+anova(mmodpr)
+
+mmodST<-lme(specific.tension~muscle, random = ~1|species/individual, data=D, na.action=na.omit)
+
+anova(mmodST)
+
+mmodVm<-lme(vmax~muscle, random = ~1|species/individual, data=D, na.action=na.omit)
+
+anova(mmodVm)
+
+mmodv40<-lme(v40~muscle, random = ~1|species/individual, data=D, na.action=na.omit)
+
+anova(mmodv40)
+
+```
+
+
+```{r}
+library(ggplot2)
+#install.packages("tidyverse")
+
+library(tidyverse)
+
+summary_tt<-F%>%
+  group_by(muscle,species)%>%
+  select(muscle,species,twitch.time)%>%
+  drop_na()%>%
+  summarize(mean=mean(twitch.time),
+            upper_se=mean(twitch.time)+sd(twitch.time)/sqrt(length(twitch.time)),
+            lower_se=mean(twitch.time)-sd(twitch.time)/sqrt(length(twitch.time)))
+
+ggplot(summary_tt, aes(x=muscle,y=mean,ymax=upper_se,ymin=lower_se,color=species))+
+  geom_pointrange(position=position_dodge(width=.2))+xlab("Muscle")+ylab("Twitch Time (ms)")+
+  theme_classic()
+
+summary_vm<-D%>%
+  group_by(muscle,species)%>%
+  select(vmax,muscle,species)%>%
+  drop_na()%>%
+  summarize(mean=mean(vmax),
+            upper_se=mean(vmax)+sd(vmax)/sqrt(length(vmax)),
+            lower_se=mean(vmax)-sd(vmax)/sqrt(length(vmax)))
+
+ggplot(summary_vm, aes(x=muscle,y=mean,ymax=upper_se,ymin=lower_se, color=species))+
+  geom_pointrange(position = position_dodge(width=.2))+
+  labs(x="Muscle", y=(~paste("V"[max], " (L"[0],"s"^-1,")")))+
+  theme_classic()
+
+summary_v40<-D%>%
+  group_by(muscle,species)%>%
+  select(v40,muscle,species)%>%
+  drop_na()%>%
+  summarize(mean=mean(v40),
+            upper_se=mean(v40)+sd(v40)/sqrt(length(v40)),
+            lower_se=mean(v40)-sd(v40)/sqrt(length(v40)))
+
+ggplot(summary_V40, aes(x=muscle,y=mean,ymax=upper_se,ymin=lower_se, color=species))+
+  geom_pointrange(position = position_dodge(width=.2))+
+  labs(x="Muscle", y=(~paste("V"[40], " (L"[0],"s"^-1,")")))+
+  theme_classic()
+
+summary_st<-D%>%
+  group_by(muscle,species)%>%
+  select(specific.tension,muscle,species)%>%
+  drop_na()%>%
+  summarize(mean=mean(specific.tension),
+            upper_se=mean(specific.tension)+sd(specific.tension)/sqrt(length(specific.tension)),
+            lower_se=mean(specific.tension)-sd(specific.tension)/sqrt(length(specific.tension)))
+
+ggplot(summary_st, aes(x=muscle, y=mean, ymax=upper_se,ymin=lower_se, color=species))+
+  geom_pointrange(position=position_dodge(width=0.2))+
+  xlab("Muscle")+ylab(~paste("Specific Tension", " (N cm"^-2,")"))+
+  theme_classic()
+
+summary_pr<-D%>%
+  group_by(muscle,species)%>%
+  select(power.ratio,muscle,species)%>%
+  drop_na()%>%
+  summarize(mean=mean(power.ratio),
+            upper_se=mean(power.ratio)+sd(power.ratio)/sqrt(length(power.ratio)),
+            lower_se=mean(power.ratio)-sd(power.ratio)/sqrt(length(power.ratio)))
+
+ggplot(summary_pr, aes(x=muscle, y=mean, ymax=upper_se,ymin=lower_se, color=species))+
+  geom_pointrange(position=position_dodge(width=0.2))+
+  xlab("Muscle")+ylab(~paste("Power Ratio"))+
+  theme_classic()
+```
